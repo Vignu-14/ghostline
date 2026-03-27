@@ -1,1 +1,43 @@
+# Environment files (NEVER commit these)
+.env
+.env.local
+.env.*.local
 backend/.env
+backend/.env.local
+frontend/.env
+frontend/.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Dependencies
+node_modules/
+/backend/vendor
+
+# Build outputs
+dist/
+build/
+.next/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+.pnpm-debug.log*
+
+# Local development
+supabase/.branches/
+supabase/.temp/
+
+# Secrets (catch-all)
+**/secrets/
+**/*secret*
+**/*token*
+**/*key*.txt
+**/*credentials*

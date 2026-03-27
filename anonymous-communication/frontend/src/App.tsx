@@ -8,6 +8,7 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { Navbar } from "./components/layout/Navbar";
 import { MobileNav } from "./components/layout/MobileNav";
+import { Footer } from "./components/layout/Footer";
 import { ProtectedRoute } from "./components/common/ProtectedRoute";
 
 function AppShell() {
@@ -29,6 +30,7 @@ function AppShell() {
         <Route element={<Navigate replace to="/" />} path="/home" />
         <Route element={<NotFoundPage />} path="*" />
       </Routes>
+      <Footer />
       <MobileNav />
     </>
   );
