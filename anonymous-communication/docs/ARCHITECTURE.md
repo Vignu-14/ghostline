@@ -562,18 +562,18 @@ Frontend:
          │ HTTP (REST) + WebSocket
          │
 ┌────────▼──────────────────────────────────────────────────────┐
-│                     SERVER (Go + Fiber)                        │
-│                                                              │
-│  Routes → Middleware → Handlers → Services → Repositories  │
+│                     SERVER (Go + Fiber)                       │
+│                                                               │
+│  Routes → Middleware → Handlers → Services → Repositories     │
 │                          ↓                      ↓             │
-│                    Business Logic         Database Queries   │
+│                    Business Logic         Database Queries    │
 └────────┬──────────────────────────────────────────────────────┘
          │
          │ SQL Queries + Storage API
          │
 ┌────────▴──────────────────────────────────────────────────────┐
 │            DATABASE & STORAGE (Supabase)                      │
-│                                                              │
+│                                                               │
 │  PostgreSQL        +        S3 Storage                        │
 │  (Structured)              (Files)                            │
 └───────────────────────────────────────────────────────────────┘

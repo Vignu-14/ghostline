@@ -38,7 +38,8 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	h.setAuthCookie(c, session.Token)
 
 	return utils.Success(c, fiber.StatusCreated, "account created successfully", fiber.Map{
-		"user": session.User,
+		"user":  session.User,
+		"token": session.Token,
 	})
 }
 
@@ -56,7 +57,8 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	h.setAuthCookie(c, session.Token)
 
 	return utils.Success(c, fiber.StatusOK, "login successful", fiber.Map{
-		"user": session.User,
+		"user":  session.User,
+		"token": session.Token,
 	})
 }
 

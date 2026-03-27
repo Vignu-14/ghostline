@@ -36,13 +36,23 @@ export function AuthProvider({ children }: PropsWithChildren) {
   async function handleLogin(input: LoginRequest) {
     const response = await authService.login(input);
     setUser(response.user);
+    // Store token from response for WebSocket access
+    if (response.token) {
+      localStorage.setItem('auth_token', response.token);
+    }
   }
 
   async function handleRegister(input: RegisterRequest) {
     const response = await authService.register(input);
     setUser(response.user);
+    // Store token from response for WebSocket access
+    if (response.token) {
+      localStorage.setItem('auth_token', response.token);
+    }
   }
-
+  // Clear token from storage
+    localStorage.removeItem('auth_token');
+  
   async function handleLogout() {
     await authService.logout();
     setUser(null);
