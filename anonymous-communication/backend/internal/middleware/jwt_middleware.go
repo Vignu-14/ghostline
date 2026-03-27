@@ -22,7 +22,17 @@ func NewJWTMiddleware(cfg config.JWTConfig) *JWTMiddleware {
 }
 
 func (m *JWTMiddleware) RequireAuth(c *fiber.Ctx) error {
+	// Try to get token from cookie first
 	token := strings.TrimSpace(c.Cookies(m.config.CookieName))
+	
+	// If no token in cookie, try Authorization header (Bearer <token>)
+	if token == "" {
+		authHeader := strings.TrimSpace(c.Get(fiber.HeaderAuthorization))
+		if strings.HasPrefix(authHeader, "Bearer ") {
+			token = authHeader[7:] // Extract token after "Bearer "
+		}
+	}
+	
 	if token == "" {
 		return utils.Error(c, fiber.StatusUnauthorized, "authentication required", nil)
 	}

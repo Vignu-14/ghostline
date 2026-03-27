@@ -47,6 +47,14 @@ func (h *WebSocketHandler) Upgrade(c *fiber.Ctx) error {
 		token = strings.TrimSpace(c.Query("token"))
 	}
 	
+	// If still no token, try Authorization header
+	if token == "" {
+		authHeader := strings.TrimSpace(c.Get(fiber.HeaderAuthorization))
+		if strings.HasPrefix(authHeader, "Bearer ") {
+			token = authHeader[7:] // Extract token after "Bearer "
+		}
+	}
+	
 	if token == "" {
 		return utils.Error(c, fiber.StatusUnauthorized, "authentication required", nil)
 	}
