@@ -3,9 +3,12 @@ package handlers
 import (
 	"context"
 	"errors"
+	"fmt"
+	"math"
 	"strings"
 
 	"anonymous-communication/backend/internal/config"
+	"anonymous-communication/backend/internal/middleware"
 	"anonymous-communication/backend/internal/models"
 	"anonymous-communication/backend/internal/services"
 	"anonymous-communication/backend/internal/utils"
@@ -19,13 +22,15 @@ type WebSocketHandler struct {
 	chatService *services.ChatService
 	hub         *internalws.Hub
 	jwtConfig   config.JWTConfig
+	rateLimiter *middleware.RateLimiter
 }
 
-func NewWebSocketHandler(chatService *services.ChatService, hub *internalws.Hub, jwtConfig config.JWTConfig) *WebSocketHandler {
+func NewWebSocketHandler(chatService *services.ChatService, hub *internalws.Hub, jwtConfig config.JWTConfig, rateLimiter *middleware.RateLimiter) *WebSocketHandler {
 	return &WebSocketHandler{
 		chatService: chatService,
 		hub:         hub,
 		jwtConfig:   jwtConfig,
+		rateLimiter: rateLimiter,
 	}
 }
 
@@ -86,6 +91,19 @@ func (h *WebSocketHandler) HandleConnection(conn *fiberws.Conn) {
 		if err != nil {
 			_ = client.WriteJSON(internalws.NewErrorEvent("invalid authenticated user"))
 			continue
+		}
+
+		if h.rateLimiter != nil {
+			allowed, retryAfter := h.rateLimiter.AllowMessageForUser(userID)
+			if !allowed {
+				retryAfterSeconds := int(math.Ceil(retryAfter.Seconds()))
+				if retryAfterSeconds < 1 {
+					retryAfterSeconds = 1
+				}
+
+				_ = client.WriteJSON(internalws.NewErrorEvent(fmt.Sprintf("message rate limit exceeded. try again in %d seconds.", retryAfterSeconds)))
+				continue
+			}
 		}
 
 		message, err := h.chatService.SendMessage(context.Background(), senderID, models.SendMessageRequest{

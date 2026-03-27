@@ -9,11 +9,12 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	JWT      JWTConfig
-	CORS     CORSConfig
-	Storage  StorageConfig
+	Server    ServerConfig
+	Database  DatabaseConfig
+	JWT       JWTConfig
+	CORS      CORSConfig
+	Storage   StorageConfig
+	RateLimit RateLimitConfig
 }
 
 type ServerConfig struct {
@@ -35,6 +36,17 @@ type JWTConfig struct {
 type CORSConfig struct {
 	AllowedOrigin    string
 	AllowCredentials bool
+}
+
+type RateLimitConfig struct {
+	LoginAttempts int
+	LoginWindow   time.Duration
+	UploadCount   int
+	UploadWindow  time.Duration
+	MessageCount  int
+	MessageWindow time.Duration
+	LikeCount     int
+	LikeWindow    time.Duration
 }
 
 func Load() (*Config, error) {
@@ -73,6 +85,16 @@ func Load() (*Config, error) {
 			SupabaseServiceKey: strings.TrimSpace(os.Getenv("SUPABASE_SERVICE_KEY")),
 			BucketName:         getEnv("STORAGE_BUCKET_NAME", DefaultStorageBucketName),
 		},
+		RateLimit: RateLimitConfig{
+			LoginAttempts: getEnvInt("RATE_LIMIT_LOGIN_ATTEMPTS", DefaultLoginRateLimitAttempts),
+			LoginWindow:   getEnvDurationMinutes("RATE_LIMIT_LOGIN_WINDOW_MINUTES", DefaultLoginRateLimitWindow),
+			UploadCount:   getEnvInt("RATE_LIMIT_UPLOAD_COUNT", DefaultUploadRateLimitCount),
+			UploadWindow:  getEnvDurationMinutes("RATE_LIMIT_UPLOAD_WINDOW_MINUTES", DefaultUploadRateLimitWindow),
+			MessageCount:  getEnvInt("RATE_LIMIT_MESSAGE_COUNT", DefaultMessageRateLimitCount),
+			MessageWindow: getEnvDurationSeconds("RATE_LIMIT_MESSAGE_WINDOW_SECONDS", DefaultMessageRateLimitWindow),
+			LikeCount:     getEnvInt("RATE_LIMIT_LIKE_COUNT", DefaultLikeRateLimitCount),
+			LikeWindow:    getEnvDurationMinutes("RATE_LIMIT_LIKE_WINDOW_MINUTES", DefaultLikeRateLimitWindow),
+		},
 	}
 
 	if err := cfg.Validate(); err != nil {
@@ -99,7 +121,34 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("JWT_SECRET is required in production")
 	}
 
+	if err := c.RateLimit.Validate(); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func (c RateLimitConfig) Validate() error {
+	switch {
+	case c.LoginAttempts < 1:
+		return fmt.Errorf("RATE_LIMIT_LOGIN_ATTEMPTS must be greater than 0")
+	case c.LoginWindow <= 0:
+		return fmt.Errorf("RATE_LIMIT_LOGIN_WINDOW_MINUTES must be greater than 0")
+	case c.UploadCount < 1:
+		return fmt.Errorf("RATE_LIMIT_UPLOAD_COUNT must be greater than 0")
+	case c.UploadWindow <= 0:
+		return fmt.Errorf("RATE_LIMIT_UPLOAD_WINDOW_MINUTES must be greater than 0")
+	case c.MessageCount < 1:
+		return fmt.Errorf("RATE_LIMIT_MESSAGE_COUNT must be greater than 0")
+	case c.MessageWindow <= 0:
+		return fmt.Errorf("RATE_LIMIT_MESSAGE_WINDOW_SECONDS must be greater than 0")
+	case c.LikeCount < 1:
+		return fmt.Errorf("RATE_LIMIT_LIKE_COUNT must be greater than 0")
+	case c.LikeWindow <= 0:
+		return fmt.Errorf("RATE_LIMIT_LIKE_WINDOW_MINUTES must be greater than 0")
+	default:
+		return nil
+	}
 }
 
 func defaultJWTSecret(environment string) string {

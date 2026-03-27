@@ -52,9 +52,13 @@ func run() error {
 		ReadTimeout:  cfg.Server.ReadTimeout,
 		WriteTimeout: cfg.Server.WriteTimeout,
 		IdleTimeout:  cfg.Server.IdleTimeout,
+		ErrorHandler: middleware.ErrorHandler,
 	})
 
+	app.Use(middleware.RequestID)
+	app.Use(middleware.RequestLogger)
 	app.Use(fiberrecover.New())
+	app.Use(middleware.NewSecureHeaders(cfg.Server.Environment))
 	app.Use(middleware.NewCORS(cfg.CORS))
 
 	userRepository := repositories.NewUserRepository(dbPool)
@@ -65,13 +69,14 @@ func run() error {
 	messageRepository := repositories.NewMessageRepository(dbPool)
 
 	authService := services.NewAuthService(userRepository, authLogRepository, cfg.JWT)
-	userService := services.NewUserService(userRepository)
+	userService := services.NewUserService(userRepository, postRepository)
 	impersonationService := services.NewImpersonationService(userRepository, adminRepository, cfg.JWT)
 	uploadService := services.NewUploadService(cfg.Storage)
 	postService := services.NewPostService(postRepository, uploadService)
 	likeService := services.NewLikeService(postRepository, likeRepository)
 	chatService := services.NewChatService(messageRepository, userRepository)
 	websocketHub := websocket.NewHub()
+	rateLimiter := middleware.NewRateLimiter(cfg.RateLimit)
 
 	healthHandler := handlers.NewHealthHandler(dbPool)
 	authHandler := handlers.NewAuthHandler(authService, cfg.JWT)
@@ -80,11 +85,11 @@ func run() error {
 	postHandler := handlers.NewPostHandler(postService)
 	likeHandler := handlers.NewLikeHandler(likeService)
 	chatHandler := handlers.NewChatHandler(chatService)
-	websocketHandler := handlers.NewWebSocketHandler(chatService, websocketHub, cfg.JWT)
+	websocketHandler := handlers.NewWebSocketHandler(chatService, websocketHub, cfg.JWT, rateLimiter)
 	jwtMiddleware := middleware.NewJWTMiddleware(cfg.JWT)
 	adminMiddleware := middleware.NewAdminMiddleware()
 
-	routes.Register(app, healthHandler, authHandler, adminHandler, userHandler, postHandler, likeHandler, chatHandler, websocketHandler, jwtMiddleware, adminMiddleware)
+	routes.Register(app, healthHandler, authHandler, adminHandler, userHandler, postHandler, likeHandler, chatHandler, websocketHandler, jwtMiddleware, adminMiddleware, rateLimiter)
 
 	serverErrors := make(chan error, 1)
 	go func() {

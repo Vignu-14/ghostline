@@ -19,7 +19,7 @@ type PostRepository struct {
 
 type CreatePostParams struct {
 	UserID   uuid.UUID
-	ImageURL string
+	ImageURL *string
 	Caption  *string
 }
 
@@ -68,7 +68,7 @@ func (r *PostRepository) Feed(ctx context.Context, limit, offset int) ([]models.
 	}
 	defer rows.Close()
 
-	var posts []models.PostFeedItem
+	posts := make([]models.PostFeedItem, 0)
 	for rows.Next() {
 		post, err := scanPostFeedRow(rows)
 		if err != nil {
@@ -80,6 +80,50 @@ func (r *PostRepository) Feed(ctx context.Context, limit, offset int) ([]models.
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate posts feed: %w", err)
+	}
+
+	return posts, nil
+}
+
+func (r *PostRepository) FeedByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]models.PostFeedItem, error) {
+	const query = `
+		SELECT
+			p.id,
+			p.user_id,
+			p.image_url,
+			p.caption,
+			p.created_at,
+			u.id,
+			u.username,
+			u.profile_picture_url,
+			COUNT(l.user_id)::bigint AS like_count
+		FROM posts p
+		INNER JOIN users u ON u.id = p.user_id
+		LEFT JOIN likes l ON l.post_id = p.id
+		WHERE p.user_id = $1
+		GROUP BY p.id, u.id
+		ORDER BY p.created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := r.db.Query(ctx, query, userID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("list posts by user: %w", err)
+	}
+	defer rows.Close()
+
+	posts := make([]models.PostFeedItem, 0)
+	for rows.Next() {
+		post, err := scanPostFeedRow(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		posts = append(posts, *post)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate user posts: %w", err)
 	}
 
 	return posts, nil
@@ -156,15 +200,20 @@ func (r *PostRepository) ExistsByID(ctx context.Context, postID uuid.UUID) (bool
 
 func scanPost(row pgx.Row) (*models.Post, error) {
 	var post models.Post
+	var imageURL sql.NullString
 	var caption sql.NullString
 
-	err := row.Scan(&post.ID, &post.UserID, &post.ImageURL, &caption, &post.CreatedAt)
+	err := row.Scan(&post.ID, &post.UserID, &imageURL, &caption, &post.CreatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, models.ErrPostNotFound
 		}
 
 		return nil, fmt.Errorf("scan post: %w", err)
+	}
+
+	if imageURL.Valid {
+		post.ImageURL = &imageURL.String
 	}
 
 	if caption.Valid {
@@ -180,6 +229,7 @@ func scanPostFeedRow(row pgx.Row) (*models.PostFeedItem, error) {
 		postID       uuid.UUID
 		userID       uuid.UUID
 		authorID     uuid.UUID
+		imageURL     sql.NullString
 		caption      sql.NullString
 		profilePhoto sql.NullString
 	)
@@ -187,7 +237,7 @@ func scanPostFeedRow(row pgx.Row) (*models.PostFeedItem, error) {
 	err := row.Scan(
 		&postID,
 		&userID,
-		&post.ImageURL,
+		&imageURL,
 		&caption,
 		&post.CreatedAt,
 		&authorID,
@@ -206,6 +256,10 @@ func scanPostFeedRow(row pgx.Row) (*models.PostFeedItem, error) {
 	post.ID = postID.String()
 	post.UserID = userID.String()
 	post.User.ID = authorID.String()
+
+	if imageURL.Valid {
+		post.ImageURL = &imageURL.String
+	}
 
 	if caption.Valid {
 		post.Caption = &caption.String

@@ -23,6 +23,15 @@ const (
 	DefaultDBHealthCheckPeriod       = 30 * time.Second
 	DefaultDBMaxConns          int32 = 25
 	DefaultDBMinConns          int32 = 5
+
+	DefaultLoginRateLimitAttempts = 5
+	DefaultLoginRateLimitWindow   = 15 * time.Minute
+	DefaultUploadRateLimitCount   = 10
+	DefaultUploadRateLimitWindow  = 1 * time.Hour
+	DefaultMessageRateLimitCount  = 10
+	DefaultMessageRateLimitWindow = 1 * time.Second
+	DefaultLikeRateLimitCount     = 100
+	DefaultLikeRateLimitWindow    = 1 * time.Hour
 )
 
 const (

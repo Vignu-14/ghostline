@@ -1,0 +1,20 @@
+:root {
+  color-scheme: light;
+  --bg: #f4efe7;
+  --bg-strong: #efe4d3;
+  --surface: rgba(255, 248, 239, 0.82);
+  --surface-strong: #fff7ed;
+  --ink: #1a1713;
+  --ink-soft: #5e5549;
+  --line: rgba(26, 23, 19, 0.12);
+  --accent: #d85f3d;
+  --accent-strong: #b7492b;
+  --success: #236b45;
+  --shadow: 0 24px 80px rgba(43, 28, 14, 0.12);
+  --radius-lg: 32px;
+  --radius-md: 18px;
+  --radius-sm: 12px;
+  --content-width: min(1120px, calc(100vw - 32px));
+  --font-display: "Fraunces", "Georgia", serif;
+  --font-body: "Space Grotesk", "Segoe UI", sans-serif;
+}

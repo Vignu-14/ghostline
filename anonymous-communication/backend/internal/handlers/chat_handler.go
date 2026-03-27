@@ -95,6 +95,57 @@ func (h *ChatHandler) SendMessage(c *fiber.Ctx) error {
 	})
 }
 
+func (h *ChatHandler) DeleteMessages(c *fiber.Ctx) error {
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		return utils.Error(c, fiber.StatusUnauthorized, "authentication required", nil)
+	}
+
+	var request models.DeleteMessagesRequest
+	if err := c.BodyParser(&request); err != nil {
+		return utils.Error(c, fiber.StatusBadRequest, "invalid request body", nil)
+	}
+
+	deletedCount, err := h.chatService.DeleteMessages(c.UserContext(), userID, request)
+	if err != nil {
+		return h.handleError(c, err)
+	}
+
+	return utils.Success(c, fiber.StatusOK, "messages deleted successfully", fiber.Map{
+		"deleted_count": deletedCount,
+		"mode":          request.Mode,
+	})
+}
+
+func (h *ChatHandler) ClearConversation(c *fiber.Ctx) error {
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		return utils.Error(c, fiber.StatusUnauthorized, "authentication required", nil)
+	}
+
+	otherUserID, err := utils.ParseUUID(c.Params("userId"))
+	if err != nil {
+		return utils.Error(c, fiber.StatusBadRequest, "invalid user id", nil)
+	}
+
+	var request models.ClearConversationRequest
+	if len(c.Body()) > 0 {
+		if err := c.BodyParser(&request); err != nil {
+			return utils.Error(c, fiber.StatusBadRequest, "invalid request body", nil)
+		}
+	}
+
+	deletedCount, err := h.chatService.ClearConversation(c.UserContext(), userID, otherUserID, request.Mode)
+	if err != nil {
+		return h.handleError(c, err)
+	}
+
+	return utils.Success(c, fiber.StatusOK, "conversation cleared successfully", fiber.Map{
+		"deleted_count": deletedCount,
+		"mode":          request.Mode,
+	})
+}
+
 func (h *ChatHandler) handleError(c *fiber.Ctx, err error) error {
 	var validationErr *models.ValidationError
 
@@ -103,8 +154,12 @@ func (h *ChatHandler) handleError(c *fiber.Ctx, err error) error {
 		return utils.Error(c, fiber.StatusBadRequest, validationErr.Error(), validationErr.Fields)
 	case errors.Is(err, models.ErrUserNotFound):
 		return utils.Error(c, fiber.StatusNotFound, "user not found", nil)
+	case errors.Is(err, models.ErrMessageNotFound):
+		return utils.Error(c, fiber.StatusNotFound, "message not found", nil)
 	case errors.Is(err, models.ErrCannotMessageSelf):
 		return utils.Error(c, fiber.StatusBadRequest, err.Error(), nil)
+	case errors.Is(err, models.ErrDeleteForEveryoneNotAllowed):
+		return utils.Error(c, fiber.StatusForbidden, err.Error(), nil)
 	default:
 		return utils.Error(c, fiber.StatusInternalServerError, "internal server error", nil)
 	}

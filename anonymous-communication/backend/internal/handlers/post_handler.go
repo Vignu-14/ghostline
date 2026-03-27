@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"mime/multipart"
 
 	"anonymous-communication/backend/internal/middleware"
 	"anonymous-communication/backend/internal/models"
@@ -46,20 +47,64 @@ func (h *PostHandler) Create(c *fiber.Ctx) error {
 		return utils.Error(c, fiber.StatusUnauthorized, "authentication required", nil)
 	}
 
-	fileHeader, err := c.FormFile("image")
-	if err != nil {
-		return utils.Error(c, fiber.StatusBadRequest, "validation failed", map[string]string{
-			"image": "image file is required",
-		})
-	}
+	var (
+		file       multipart.File
+		fileHeader *multipart.FileHeader
+	)
 
-	file, err := fileHeader.Open()
-	if err != nil {
-		return utils.Error(c, fiber.StatusBadRequest, "unable to read uploaded file", nil)
+	fileHeader, err = c.FormFile("image")
+	if err == nil && fileHeader != nil {
+		openedFile, openErr := fileHeader.Open()
+		if openErr != nil {
+			return utils.Error(c, fiber.StatusBadRequest, "unable to read uploaded file", nil)
+		}
+		defer openedFile.Close()
+		file = openedFile
 	}
-	defer file.Close()
 
 	post, err := h.postService.Create(c.UserContext(), userID, file, fileHeader, c.FormValue("caption"))
+	if err != nil {
+		return h.handleError(c, err)
+	}
+
+	return utils.Success(c, fiber.StatusCreated, "post created successfully", fiber.Map{
+		"post": post,
+	})
+}
+
+func (h *PostHandler) CreateUploadURL(c *fiber.Ctx) error {
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		return utils.Error(c, fiber.StatusUnauthorized, "authentication required", nil)
+	}
+
+	var request models.CreatePostUploadRequest
+	if err := c.BodyParser(&request); err != nil {
+		return utils.Error(c, fiber.StatusBadRequest, "invalid request body", nil)
+	}
+
+	upload, err := h.postService.CreateUploadURL(c.UserContext(), userID, request)
+	if err != nil {
+		return h.handleError(c, err)
+	}
+
+	return utils.Success(c, fiber.StatusOK, "upload url created successfully", fiber.Map{
+		"upload": upload,
+	})
+}
+
+func (h *PostHandler) CreateFromUploadedObject(c *fiber.Ctx) error {
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		return utils.Error(c, fiber.StatusUnauthorized, "authentication required", nil)
+	}
+
+	var request models.CreatePostFromUploadRequest
+	if err := c.BodyParser(&request); err != nil {
+		return utils.Error(c, fiber.StatusBadRequest, "invalid request body", nil)
+	}
+
+	post, err := h.postService.CreateFromUploadedObject(c.UserContext(), userID, request)
 	if err != nil {
 		return h.handleError(c, err)
 	}

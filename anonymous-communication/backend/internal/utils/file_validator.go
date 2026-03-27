@@ -11,6 +11,8 @@ import (
 	"net/http"
 
 	"anonymous-communication/backend/internal/models"
+
+	_ "golang.org/x/image/webp"
 )
 
 const (
@@ -64,9 +66,11 @@ func ValidateImageFile(file multipart.File, header *multipart.FileHeader) (*Vali
 		extension = ".png"
 	case "image/gif":
 		extension = ".gif"
+	case "image/webp":
+		extension = ".webp"
 	default:
 		return nil, models.NewValidationError(map[string]string{
-			"image": "only JPEG, PNG, or GIF images are allowed",
+			"image": "only JPEG, PNG, GIF, or WebP images are allowed",
 		})
 	}
 

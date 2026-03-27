@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"anonymous-communication/backend/internal/models"
 
@@ -95,6 +96,60 @@ func (r *UserRepository) EmailExists(ctx context.Context, email string) (bool, e
 	}
 
 	return exists, nil
+}
+
+func (r *UserRepository) SearchByUsername(ctx context.Context, query string, excludeUserID uuid.UUID, limit int) ([]models.UserSearchResult, error) {
+	if limit <= 0 {
+		limit = 8
+	}
+
+	trimmedQuery := strings.TrimSpace(query)
+	if trimmedQuery == "" {
+		return make([]models.UserSearchResult, 0), nil
+	}
+
+	const sqlQuery = `
+		SELECT id, username, profile_picture_url
+		FROM users
+		WHERE id <> $1
+		  AND LOWER(username) LIKE LOWER($2)
+		ORDER BY username ASC
+		LIMIT $3
+	`
+
+	rows, err := r.db.Query(ctx, sqlQuery, excludeUserID, "%"+trimmedQuery+"%", limit)
+	if err != nil {
+		return nil, fmt.Errorf("search users by username: %w", err)
+	}
+	defer rows.Close()
+
+	results := make([]models.UserSearchResult, 0)
+	for rows.Next() {
+		var (
+			id                uuid.UUID
+			username          string
+			profilePictureURL sql.NullString
+			result            models.UserSearchResult
+		)
+
+		if err := rows.Scan(&id, &username, &profilePictureURL); err != nil {
+			return nil, fmt.Errorf("scan user search result: %w", err)
+		}
+
+		result.ID = id.String()
+		result.Username = username
+		if profilePictureURL.Valid {
+			result.ProfilePictureURL = &profilePictureURL.String
+		}
+
+		results = append(results, result)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate user search results: %w", err)
+	}
+
+	return results, nil
 }
 
 func scanUser(row pgx.Row) (*models.User, error) {

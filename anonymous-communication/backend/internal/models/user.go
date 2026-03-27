@@ -26,6 +26,19 @@ type UserResponse struct {
 	CreatedAt         time.Time `json:"created_at"`
 }
 
+type UserSearchResult struct {
+	ID                string  `json:"id"`
+	Username          string  `json:"username"`
+	ProfilePictureURL *string `json:"profile_picture_url,omitempty"`
+}
+
+type PublicUserProfile struct {
+	ID                string    `json:"id"`
+	Username          string    `json:"username"`
+	ProfilePictureURL *string   `json:"profile_picture_url,omitempty"`
+	CreatedAt         time.Time `json:"created_at"`
+}
+
 type RegisterRequest struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
@@ -48,6 +61,23 @@ func (u User) ToResponse() UserResponse {
 		Username:          u.Username,
 		Email:             u.Email,
 		Role:              u.Role,
+		ProfilePictureURL: u.ProfilePictureURL,
+		CreatedAt:         u.CreatedAt,
+	}
+}
+
+func (u User) ToSearchResult() UserSearchResult {
+	return UserSearchResult{
+		ID:                u.ID.String(),
+		Username:          u.Username,
+		ProfilePictureURL: u.ProfilePictureURL,
+	}
+}
+
+func (u User) ToPublicProfile() PublicUserProfile {
+	return PublicUserProfile{
+		ID:                u.ID.String(),
+		Username:          u.Username,
 		ProfilePictureURL: u.ProfilePictureURL,
 		CreatedAt:         u.CreatedAt,
 	}
