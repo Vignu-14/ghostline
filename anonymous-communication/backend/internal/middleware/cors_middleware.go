@@ -12,6 +12,6 @@ func NewCORS(cfg config.CORSConfig) fiber.Handler {
 		AllowOrigins:     cfg.AllowedOrigin,
 		AllowCredentials: cfg.AllowCredentials,
 		AllowMethods:     "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-		AllowHeaders:     "Origin, Content-Type, Accept",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 	})
 }
