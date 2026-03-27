@@ -14,10 +14,30 @@ export class ChatSocket {
   private socket: WebSocket | null = null;
 
   connect(onMessage: (event: WebSocketEvent) => void, onClose?: () => void) {
-    this.socket = new WebSocket(buildWebSocketURL());
+    const wsURL = buildWebSocketURL();
+    
+    // Get JWT token from localStorage
+    const token = localStorage.getItem('auth_token');
+    
+    // Add token as query parameter if available
+    const urlWithToken = token ? `${wsURL}?token=${encodeURIComponent(token)}` : wsURL;
+    
+    this.socket = new WebSocket(urlWithToken);
+    
+    this.socket.onopen = () => {
+      // Send authentication message with token
+      if (token) {
+        this.socket?.send(JSON.stringify({
+          type: 'authenticate',
+          token: token
+        }));
+      }
+    };
+    
     this.socket.onmessage = (event) => {
       onMessage(JSON.parse(event.data) as WebSocketEvent);
     };
+    
     this.socket.onclose = () => {
       if (onClose) {
         onClose();

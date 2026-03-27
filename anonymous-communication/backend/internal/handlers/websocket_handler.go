@@ -39,7 +39,14 @@ func (h *WebSocketHandler) Upgrade(c *fiber.Ctx) error {
 		return fiber.ErrUpgradeRequired
 	}
 
+	// Try to get token from cookie first
 	token := strings.TrimSpace(c.Cookies(h.jwtConfig.CookieName))
+	
+	// If no token in cookie, try query parameter
+	if token == "" {
+		token = strings.TrimSpace(c.Query("token"))
+	}
+	
 	if token == "" {
 		return utils.Error(c, fiber.StatusUnauthorized, "authentication required", nil)
 	}
