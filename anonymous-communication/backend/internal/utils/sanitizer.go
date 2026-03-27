@@ -1,7 +1,13 @@
 package utils
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/microcosm-cc/bluemonday"
+)
+
+var strictSanitizer = bluemonday.StrictPolicy()
 
 func SanitizeText(input string) string {
-	return strings.TrimSpace(input)
+	return strings.TrimSpace(strictSanitizer.Sanitize(input))
 }

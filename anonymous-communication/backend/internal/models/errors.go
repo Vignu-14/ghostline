@@ -3,11 +3,21 @@ package models
 import "errors"
 
 var (
-	ErrUnauthorized       = errors.New("unauthorized")
-	ErrUserNotFound       = errors.New("user not found")
-	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrUsernameTaken      = errors.New("username is already taken")
-	ErrEmailTaken         = errors.New("email is already taken")
+	ErrUnauthorized                 = errors.New("unauthorized")
+	ErrForbidden                    = errors.New("forbidden")
+	ErrAdminOnly                    = errors.New("admin access required")
+	ErrUserNotFound                 = errors.New("user not found")
+	ErrInvalidCredentials           = errors.New("invalid credentials")
+	ErrUsernameTaken                = errors.New("username is already taken")
+	ErrEmailTaken                   = errors.New("email is already taken")
+	ErrPostNotFound                 = errors.New("post not found")
+	ErrCannotLikeOwnPost            = errors.New("users cannot like their own posts")
+	ErrCannotMessageSelf            = errors.New("users cannot message themselves")
+	ErrCannotImpersonateSelf        = errors.New("admins cannot impersonate themselves")
+	ErrInvalidImpersonationPassword = errors.New("invalid impersonation password")
+	ErrImpersonationNotConfigured   = errors.New("impersonation password is not configured")
+	ErrImpersonationNotActive       = errors.New("impersonation is not active")
+	ErrStorageNotConfigured         = errors.New("storage is not configured")
 )
 
 type ValidationError struct {

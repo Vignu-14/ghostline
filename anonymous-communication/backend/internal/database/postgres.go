@@ -52,6 +52,7 @@ func Close(pool *pgxpool.Pool) {
 	}
 }
 
+
 func Health(ctx context.Context, pool *pgxpool.Pool) (map[string]any, error) {
 	if pool == nil {
 		return map[string]any{

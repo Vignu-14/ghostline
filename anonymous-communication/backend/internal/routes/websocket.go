@@ -1,7 +1,13 @@
 package routes
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"anonymous-communication/backend/internal/handlers"
 
-func registerWebSocketRoutes(_ fiber.Router) {
-	// WebSocket route registration will be added in a later batch.
+	fiberws "github.com/gofiber/contrib/websocket"
+	"github.com/gofiber/fiber/v2"
+)
+
+func registerWebSocketRoutes(app *fiber.App, websocketHandler *handlers.WebSocketHandler) {
+	app.Use("/ws/chat", websocketHandler.Upgrade)
+	app.Get("/ws/chat", fiberws.New(websocketHandler.HandleConnection))
 }

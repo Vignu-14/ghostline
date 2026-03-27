@@ -1,3 +1,9 @@
 package websocket
 
-// WebSocket broadcaster implementation will be added in a later batch.
+func BroadcastToUser(hub *Hub, userID string, payload any) bool {
+	if hub == nil {
+		return false
+	}
+
+	return hub.SendToUser(userID, payload)
+}

@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"anonymous-communication/backend/internal/config"
@@ -15,9 +17,11 @@ import (
 	"anonymous-communication/backend/internal/repositories"
 	"anonymous-communication/backend/internal/routes"
 	"anonymous-communication/backend/internal/services"
+	"anonymous-communication/backend/internal/websocket"
 
 	"github.com/gofiber/fiber/v2"
 	fiberrecover "github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -28,6 +32,10 @@ func main() {
 }
 
 func run() error {
+	if err := loadEnvFile(); err != nil {
+		return fmt.Errorf("load env file: %w", err)
+	}
+
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
@@ -51,16 +59,32 @@ func run() error {
 
 	userRepository := repositories.NewUserRepository(dbPool)
 	authLogRepository := repositories.NewAuthLogRepository(dbPool)
+	adminRepository := repositories.NewAdminRepository(dbPool)
+	postRepository := repositories.NewPostRepository(dbPool)
+	likeRepository := repositories.NewLikeRepository(dbPool)
+	messageRepository := repositories.NewMessageRepository(dbPool)
 
 	authService := services.NewAuthService(userRepository, authLogRepository, cfg.JWT)
 	userService := services.NewUserService(userRepository)
+	impersonationService := services.NewImpersonationService(userRepository, adminRepository, cfg.JWT)
+	uploadService := services.NewUploadService(cfg.Storage)
+	postService := services.NewPostService(postRepository, uploadService)
+	likeService := services.NewLikeService(postRepository, likeRepository)
+	chatService := services.NewChatService(messageRepository, userRepository)
+	websocketHub := websocket.NewHub()
 
 	healthHandler := handlers.NewHealthHandler(dbPool)
 	authHandler := handlers.NewAuthHandler(authService, cfg.JWT)
+	adminHandler := handlers.NewAdminHandler(impersonationService, cfg.JWT)
 	userHandler := handlers.NewUserHandler(userService)
+	postHandler := handlers.NewPostHandler(postService)
+	likeHandler := handlers.NewLikeHandler(likeService)
+	chatHandler := handlers.NewChatHandler(chatService)
+	websocketHandler := handlers.NewWebSocketHandler(chatService, websocketHub, cfg.JWT)
 	jwtMiddleware := middleware.NewJWTMiddleware(cfg.JWT)
+	adminMiddleware := middleware.NewAdminMiddleware()
 
-	routes.Register(app, healthHandler, authHandler, userHandler, jwtMiddleware)
+	routes.Register(app, healthHandler, authHandler, adminHandler, userHandler, postHandler, likeHandler, chatHandler, websocketHandler, jwtMiddleware, adminMiddleware)
 
 	serverErrors := make(chan error, 1)
 	go func() {
@@ -90,4 +114,27 @@ func run() error {
 
 		return nil
 	}
+}
+
+func loadEnvFile() error {
+	candidates := []string{
+		".env",
+		filepath.Join("backend", ".env"),
+	}
+
+	for _, path := range candidates {
+		if _, err := os.Stat(path); err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				continue
+			}
+
+			return fmt.Errorf("stat %s: %w", path, err)
+		}
+
+		if err := godotenv.Load(path); err != nil {
+			return fmt.Errorf("load %s: %w", path, err)
+		}
+	}
+
+	return nil
 }

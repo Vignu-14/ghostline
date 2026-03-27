@@ -1,3 +1,122 @@
 package handlers
 
-// WebSocket handlers will be added in a later batch.
+import (
+	"context"
+	"errors"
+	"strings"
+
+	"anonymous-communication/backend/internal/config"
+	"anonymous-communication/backend/internal/models"
+	"anonymous-communication/backend/internal/services"
+	"anonymous-communication/backend/internal/utils"
+	internalws "anonymous-communication/backend/internal/websocket"
+
+	fiberws "github.com/gofiber/contrib/websocket"
+	"github.com/gofiber/fiber/v2"
+)
+
+type WebSocketHandler struct {
+	chatService *services.ChatService
+	hub         *internalws.Hub
+	jwtConfig   config.JWTConfig
+}
+
+func NewWebSocketHandler(chatService *services.ChatService, hub *internalws.Hub, jwtConfig config.JWTConfig) *WebSocketHandler {
+	return &WebSocketHandler{
+		chatService: chatService,
+		hub:         hub,
+		jwtConfig:   jwtConfig,
+	}
+}
+
+func (h *WebSocketHandler) Upgrade(c *fiber.Ctx) error {
+	if !fiberws.IsWebSocketUpgrade(c) {
+		return fiber.ErrUpgradeRequired
+	}
+
+	token := strings.TrimSpace(c.Cookies(h.jwtConfig.CookieName))
+	if token == "" {
+		return utils.Error(c, fiber.StatusUnauthorized, "authentication required", nil)
+	}
+
+	claims, err := utils.ParseToken(h.jwtConfig.Secret, token)
+	if err != nil {
+		return utils.Error(c, fiber.StatusUnauthorized, "invalid or expired session", nil)
+	}
+
+	c.Locals("user_id", claims.UserID)
+	return c.Next()
+}
+
+func (h *WebSocketHandler) HandleConnection(conn *fiberws.Conn) {
+	userIDValue := conn.Locals("user_id")
+	userID, ok := userIDValue.(string)
+	if !ok || strings.TrimSpace(userID) == "" {
+		_ = conn.WriteJSON(internalws.NewErrorEvent("authentication required"))
+		_ = conn.Close()
+		return
+	}
+
+	client := internalws.NewClient(userID, conn)
+	h.hub.Register(client)
+	defer func() {
+		h.hub.Unregister(client)
+		_ = client.Close()
+	}()
+
+	_ = client.WriteJSON(internalws.NewConnectedEvent())
+
+	for {
+		var inbound internalws.IncomingMessage
+		if err := conn.ReadJSON(&inbound); err != nil {
+			break
+		}
+
+		messageType := inbound.Type
+		if messageType == "" {
+			messageType = internalws.EventTypeMessage
+		}
+
+		if messageType != internalws.EventTypeMessage {
+			_ = client.WriteJSON(internalws.NewErrorEvent("unsupported websocket event type"))
+			continue
+		}
+
+		senderID, err := utils.ParseUUID(userID)
+		if err != nil {
+			_ = client.WriteJSON(internalws.NewErrorEvent("invalid authenticated user"))
+			continue
+		}
+
+		message, err := h.chatService.SendMessage(context.Background(), senderID, models.SendMessageRequest{
+			ReceiverID: inbound.ReceiverID,
+			Content:    inbound.Content,
+		})
+		if err != nil {
+			_ = client.WriteJSON(internalws.NewErrorEvent(h.websocketErrorMessage(err)))
+			continue
+		}
+
+		event := internalws.NewMessageEvent(message)
+		_ = client.WriteJSON(event)
+		internalws.BroadcastToUser(h.hub, message.ReceiverID, event)
+	}
+}
+
+func (h *WebSocketHandler) websocketErrorMessage(err error) string {
+	var validationErr *models.ValidationError
+
+	switch {
+	case errors.As(err, &validationErr):
+		for _, message := range validationErr.Fields {
+			return message
+		}
+		return validationErr.Error()
+	case errors.Is(err, models.ErrUserNotFound):
+		return "receiver not found"
+	case errors.Is(err, models.ErrCannotMessageSelf):
+		return err.Error()
+	default:
+		return "unable to process websocket message"
+	}
+}

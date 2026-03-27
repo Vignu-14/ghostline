@@ -15,3 +15,16 @@ type AdminAuditLog struct {
 	Metadata     map[string]any `json:"metadata,omitempty"`
 	CreatedAt    time.Time      `json:"created_at"`
 }
+
+type CreateAdminAuditLogParams struct {
+	AdminID      uuid.UUID
+	TargetUserID *uuid.UUID
+	Action       string
+	IPAddress    string
+	Metadata     map[string]any
+}
+
+type ImpersonateRequest struct {
+	TargetUserID          string `json:"target_user_id"`
+	ImpersonationPassword string `json:"impersonation_password"`
+}

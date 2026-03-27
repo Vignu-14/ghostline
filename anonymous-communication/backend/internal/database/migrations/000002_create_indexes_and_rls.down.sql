@@ -18,6 +18,9 @@ ALTER TABLE users DISABLE ROW LEVEL SECURITY;
 -- Drop Indexes
 DROP INDEX IF EXISTS idx_auth_logs_ip;
 DROP INDEX IF EXISTS idx_auth_logs_user_id;
+DROP INDEX IF EXISTS idx_admin_audit_logs_created_at;
+DROP INDEX IF EXISTS idx_admin_audit_logs_target_user_id;
+DROP INDEX IF EXISTS idx_admin_audit_logs_admin_id;
 DROP INDEX IF EXISTS idx_messages_unread;
 DROP INDEX IF EXISTS idx_messages_conversation;
 DROP INDEX IF EXISTS idx_likes_post_id;

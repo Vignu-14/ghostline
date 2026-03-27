@@ -8,6 +8,9 @@ CREATE INDEX idx_messages_conversation ON messages(sender_id, receiver_id, creat
 CREATE INDEX idx_messages_unread ON messages(receiver_id) WHERE is_read = false;
 CREATE INDEX idx_auth_logs_user_id ON auth_logs(user_id);
 CREATE INDEX idx_auth_logs_ip ON auth_logs(ip_address);
+CREATE INDEX idx_admin_audit_logs_admin_id ON admin_audit_logs(admin_id);
+CREATE INDEX idx_admin_audit_logs_target_user_id ON admin_audit_logs(target_user_id);
+CREATE INDEX idx_admin_audit_logs_created_at ON admin_audit_logs(created_at DESC);
 
 -- Enable Row Level Security
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
