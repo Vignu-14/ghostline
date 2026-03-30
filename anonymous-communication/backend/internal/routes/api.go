@@ -24,7 +24,7 @@ func registerAPIRoutes(
 	api.Get("/health/ready", healthHandler.Ready)
 
 	auth := api.Group("/auth")
-	auth.Post("/register", authHandler.Register)
+	auth.Post("/register", rateLimiter.Register(), authHandler.Register)
 	auth.Post("/login", rateLimiter.Login(), authHandler.Login)
 	auth.Post("/logout", authHandler.Logout)
 	auth.Get("/me", jwtMiddleware.RequireAuth, userHandler.Me)

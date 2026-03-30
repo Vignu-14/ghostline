@@ -50,10 +50,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
       localStorage.setItem('auth_token', response.token);
     }
   }
-  // Clear token from storage
-    localStorage.removeItem('auth_token');
-  
   async function handleLogout() {
+    // Clear token from storage
+    localStorage.removeItem('auth_token');
     await authService.logout();
     setUser(null);
   }

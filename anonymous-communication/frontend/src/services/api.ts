@@ -5,6 +5,9 @@ type RequestOptions = RequestInit & {
   isFormData?: boolean;
 };
 
+// Helper to check if we're in production
+const isProduction = import.meta.env.PROD;
+
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers = new Headers(options.headers);
 
@@ -18,11 +21,36 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-    credentials: "include",
-  });
+  // Generate request ID for tracing
+  const requestId = crypto.randomUUID();
+  headers.set("X-Request-ID", requestId);
+
+  const url = `${API_BASE_URL}${path}`;
+
+  let response: Response;
+
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+      credentials: "include",
+    });
+  } catch (networkError) {
+    // Handle network errors (CORS, connection refused, DNS failures, etc.)
+    const errorMessage = isProduction
+      ? "Unable to connect to server. Please check your internet connection and try again."
+      : `Network error: ${networkError instanceof Error ? networkError.message : 'Unknown error'}`;
+
+    console.error("Network request failed:", {
+      url,
+      method: options.method || 'GET',
+      requestId,
+      error: networkError,
+      apiBaseUrl: API_BASE_URL,
+    });
+
+    throw new APIError(errorMessage, 0);
+  }
 
   let payload: APIResponse<T>;
 

@@ -42,6 +42,15 @@ func (r *RateLimiter) Login() fiber.Handler {
 	)
 }
 
+func (r *RateLimiter) Register() fiber.Handler {
+	return r.limitByIP(
+		"register",
+		r.config.RegisterAttempts,
+		r.config.RegisterWindow,
+		"too many registration attempts. try again later.",
+	)
+}
+
 func (r *RateLimiter) Uploads() fiber.Handler {
 	return r.limitByActor(
 		"uploads",

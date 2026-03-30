@@ -39,14 +39,16 @@ type CORSConfig struct {
 }
 
 type RateLimitConfig struct {
-	LoginAttempts int
-	LoginWindow   time.Duration
-	UploadCount   int
-	UploadWindow  time.Duration
-	MessageCount  int
-	MessageWindow time.Duration
-	LikeCount     int
-	LikeWindow    time.Duration
+	LoginAttempts    int
+	LoginWindow      time.Duration
+	RegisterAttempts int
+	RegisterWindow   time.Duration
+	UploadCount      int
+	UploadWindow     time.Duration
+	MessageCount     int
+	MessageWindow    time.Duration
+	LikeCount        int
+	LikeWindow       time.Duration
 }
 
 func Load() (*Config, error) {
@@ -86,14 +88,16 @@ func Load() (*Config, error) {
 			BucketName:         getEnv("STORAGE_BUCKET_NAME", DefaultStorageBucketName),
 		},
 		RateLimit: RateLimitConfig{
-			LoginAttempts: getEnvInt("RATE_LIMIT_LOGIN_ATTEMPTS", DefaultLoginRateLimitAttempts),
-			LoginWindow:   getEnvDurationMinutes("RATE_LIMIT_LOGIN_WINDOW_MINUTES", DefaultLoginRateLimitWindow),
-			UploadCount:   getEnvInt("RATE_LIMIT_UPLOAD_COUNT", DefaultUploadRateLimitCount),
-			UploadWindow:  getEnvDurationMinutes("RATE_LIMIT_UPLOAD_WINDOW_MINUTES", DefaultUploadRateLimitWindow),
-			MessageCount:  getEnvInt("RATE_LIMIT_MESSAGE_COUNT", DefaultMessageRateLimitCount),
-			MessageWindow: getEnvDurationSeconds("RATE_LIMIT_MESSAGE_WINDOW_SECONDS", DefaultMessageRateLimitWindow),
-			LikeCount:     getEnvInt("RATE_LIMIT_LIKE_COUNT", DefaultLikeRateLimitCount),
-			LikeWindow:    getEnvDurationMinutes("RATE_LIMIT_LIKE_WINDOW_MINUTES", DefaultLikeRateLimitWindow),
+			LoginAttempts:    getEnvInt("RATE_LIMIT_LOGIN_ATTEMPTS", DefaultLoginRateLimitAttempts),
+			LoginWindow:      getEnvDurationMinutes("RATE_LIMIT_LOGIN_WINDOW_MINUTES", DefaultLoginRateLimitWindow),
+			RegisterAttempts: getEnvInt("RATE_LIMIT_REGISTER_ATTEMPTS", DefaultRegisterRateLimitAttempts),
+			RegisterWindow:   getEnvDurationMinutes("RATE_LIMIT_REGISTER_WINDOW_MINUTES", DefaultRegisterRateLimitWindow),
+			UploadCount:      getEnvInt("RATE_LIMIT_UPLOAD_COUNT", DefaultUploadRateLimitCount),
+			UploadWindow:     getEnvDurationMinutes("RATE_LIMIT_UPLOAD_WINDOW_MINUTES", DefaultUploadRateLimitWindow),
+			MessageCount:     getEnvInt("RATE_LIMIT_MESSAGE_COUNT", DefaultMessageRateLimitCount),
+			MessageWindow:    getEnvDurationSeconds("RATE_LIMIT_MESSAGE_WINDOW_SECONDS", DefaultMessageRateLimitWindow),
+			LikeCount:        getEnvInt("RATE_LIMIT_LIKE_COUNT", DefaultLikeRateLimitCount),
+			LikeWindow:       getEnvDurationMinutes("RATE_LIMIT_LIKE_WINDOW_MINUTES", DefaultLikeRateLimitWindow),
 		},
 	}
 
