@@ -81,6 +81,7 @@ export function CreatePost({ onCreated }: CreatePostProps) {
         value={caption}
       />
 
+      {/* Image upload temporarily disabled
       <label className="composer__upload">
         <span>{image ? image.name : "Choose image (optional)"}</span>
         <input
@@ -89,6 +90,7 @@ export function CreatePost({ onCreated }: CreatePostProps) {
           type="file"
         />
       </label>
+      */}
 
       {error ? <p className="form-error">{error}</p> : null}
       {status ? <p className="support-copy">{status}</p> : null}
