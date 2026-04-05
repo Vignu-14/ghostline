@@ -5,11 +5,22 @@ export function MobileNav() {
   const { user } = useAuth();
 
   return (
-    <nav className="mobile-nav">
-      <NavLink to="/">Feed</NavLink>
-      <NavLink to="/chat">Chat</NavLink>
-      {user ? <NavLink to={`/u/${user.username}`}>Profile</NavLink> : null}
-      {user?.role === "admin" ? <NavLink to="/admin">Admin</NavLink> : null}
+    <nav aria-label="Mobile navigation" className="mobile-nav">
+      <div className="mobile-nav__shell">
+        <NavLink to="/">Feed</NavLink>
+        <NavLink to="/chat">Chat</NavLink>
+        {user ? (
+          <>
+            <NavLink to={`/u/${user.username}`}>Profile</NavLink>
+            {user.role === "admin" ? <NavLink to="/admin">Admin</NavLink> : null}
+          </>
+        ) : (
+          <>
+            <NavLink to="/login">Login</NavLink>
+            <NavLink to="/register">Register</NavLink>
+          </>
+        )}
+      </div>
     </nav>
   );
 }
